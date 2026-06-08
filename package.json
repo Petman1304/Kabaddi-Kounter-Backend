@@ -1,0 +1,20 @@
+{
+  "name": "kabaddi-kounter-live-score-backend",
+  "version": "1.0.0",
+  "private": true,
+  "type": "commonjs",
+  "scripts": {
+    "start": "node src/server.js",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "firebase-admin": "^13.10.0"
+  },
+  "devDependencies": {
+    "supertest": "^7.1.1"
+  }
+}
+
