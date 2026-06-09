@@ -2,6 +2,11 @@ const express = require('express');
 const cors = require('cors');
 const { LiveMatchStore } = require('./matchStore');
 const { getInitializationError, sendUpdate } = require('./fcmService');
+const admin = require('firebase-admin');
+
+admin.initializeApp({
+  credential: admin.credential.cert(require('./serviceAccountKey.json')),
+});
 
 function resolveScoringSide(match, body) {
   const rawHint = String(body.team || body.side || body.scoringSide || body.scoringTeam || body.teamName || '').trim();
@@ -68,6 +73,14 @@ function createApp({ store = new LiveMatchStore(), notifier = sendUpdate } = {})
     res.json(store.listMatches());
   });
 
+  app.get('/match/:id', (req, res) => {
+    const match = store.getMatch(req.params.id);
+    if (!match) {
+      return res.status(404).json({ message: 'Match not found' });
+    }
+    res.json(match);
+  });
+
   app.post('/match/:id/subscribe', async (req, res, next) => {
     try {
       const { id } = req.params;
@@ -106,6 +119,34 @@ function createApp({ store = new LiveMatchStore(), notifier = sendUpdate } = {})
         newScore: update.newScore || `${updatedMatch.teamAScore} - ${updatedMatch.teamBScore}`,
       }, subscribers);
 
+      // tambah publish FCM topic
+      const message = {
+        topic: `match_${id}`,
+        notification: {
+          title: `Match Ended: ${updatedMatch.teamAName} vs ${updatedMatch.teamBName}`,
+          body: `Final Score: ${updatedMatch.teamAScore} - ${updatedMatch.teamBScore}`,
+        },
+        data: {
+          type: 'match_end',
+          matchId: String(updatedMatch.id),
+          teamAName: updatedMatch.teamAName,
+          teamBName: updatedMatch.teamBName,
+          teamAScore: String(updatedMatch.teamAScore),
+          teamBScore: String(updatedMatch.teamBScore),
+          status: updatedMatch.status,
+        },
+        android: {
+          priority: 'high',
+        },
+        
+      };
+
+      await admin.messaging().send(message).then((res) => {
+        console.log('FCM message sent successfully for match end.');
+      }).catch(err => {
+        console.error('Error sending FCM message for match end:', err);
+      });
+
       res.json({
         success: true,
         match: updatedMatch,
@@ -125,6 +166,34 @@ function createApp({ store = new LiveMatchStore(), notifier = sendUpdate } = {})
         scoringTeam: 'Match ended',
         newScore: `${endedMatch.teamAScore} - ${endedMatch.teamBScore}`,
       }, subscribers);
+
+      // tambah publish FCM topic
+      const message = {
+        topic: `match_${id}`,
+        notification: {
+          title: `Match Ended: ${endedMatch.teamAName} vs ${endedMatch.teamBName}`,
+          body: `Final Score: ${endedMatch.teamAScore} - ${endedMatch.teamBScore}`,
+        },
+        data: {
+          type: 'match_end',
+          matchId: String(endedMatch.id),
+          teamAName: endedMatch.teamAName,
+          teamBName: endedMatch.teamBName,
+          teamAScore: String(endedMatch.teamAScore),
+          teamBScore: String(endedMatch.teamBScore),
+          status: endedMatch.status,
+        },
+        android: {
+          priority: 'high',
+        },
+        
+      };
+
+      await admin.messaging().send(message).then((res) => {
+        console.log('FCM message sent successfully for match end.');
+      }).catch(err => {
+        console.error('Error sending FCM message for match end:', err);
+      });
 
       res.json({
         success: true,

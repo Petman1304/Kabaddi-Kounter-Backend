@@ -3,8 +3,8 @@ const sampleMatches = [
 	id: '1',
 	teamAName: 'Kabaddi Kings',
 	teamBName: 'Raid Rangers',
-	teamAScore: 12,
-	teamBScore: 10,
+	teamAScore: 2,
+	teamBScore: 0,
 	status: 'LIVE',
   },
   {
